@@ -1,47 +1,34 @@
-from datetime import datetime, timedelta
-import folium
 import ee
+import folium
 
 # Authenticate with service account key file
 service_account = 'waste-management@ee-talropajmal1016.iam.gserviceaccount.com'
 key_file = './service-account-key.json'
+
 ee.Initialize(ee.ServiceAccountCredentials(service_account, key_file))
+print("Earth Engine Initialized successfully!")
 
 # Define area of interest
-point = ee.Geometry.Point([77.5946, 12.9716])  # Replace with valid coordinates
-
-# Define dynamic date range
-end_date = datetime.utcnow()  # Today's date
-start_date = end_date - timedelta(days=30)  # 30 days ago
-start_date_str = start_date.strftime('%Y-%m-%d')
-end_date_str = end_date.strftime('%Y-%m-%d')
-
-# Fetch the most recent image
+# Replace with your coordinates
+point = ee.Geometry.Point([75.89532712, 11.10155387])
 image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
     .filterBounds(point) \
-    .filterDate(start_date_str, end_date_str) \
-    .filter(ee.Filter.lt('CLOUD_COVER', 80)) \
+    .filterDate('2024-12-20', '2024-12-28') \
     .sort('CLOUD_COVER') \
     .first()
 
-# Check if an image was found
-if image:
-    print("Image found:", image.getInfo())
-else:
-    print("No matching image found. Adjust the query parameters.")
-    exit()
 
 # Visualization parameters
 vis_params = {
     'min': 0,
     'max': 3000,
-    'bands': ['B4', 'B3', 'B2'],  # True-color bands
+    'bands': ['B4', 'B3', 'B2'],  # RGB bands
 }
 
-# Create a Folium map
-map = folium.Map(location=[12.9716, 77.5946], zoom_start=18)
+# Center map on the area of interest
+map = folium.Map(location=[12.9716, 77.5946], zoom_start=10)
 
-# Define a function to add Earth Engine layers to the map
+# Define a function to add Earth Engine data to the map
 
 
 def add_ee_layer(self, ee_object, vis_params, name):
@@ -55,10 +42,11 @@ def add_ee_layer(self, ee_object, vis_params, name):
     ).add_to(self)
 
 
-# Add the layer
+# Add the Earth Engine layer to Folium map
 folium.Map.add_ee_layer = add_ee_layer
 map.add_ee_layer(image, vis_params, 'Sentinel-2 Image')
 
-# Save and view the map
-map.save('map.html')
-print("Map saved as 'map.html'. Open it in your browser to view.")
+# Add layer control and display map
+folium.LayerControl().add_to(map)
+map.save('map.html')  # Save the map as an HTML file
+print("Map saved as map.html. Open it in your browser to view.")
